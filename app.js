@@ -5,6 +5,9 @@ const T_ALUNOS='academia_alunos', T_PAG='academia_pagamentos';
 let alunos=JSON.parse(localStorage.getItem(KEY)||'[]');
 let pagamentos=JSON.parse(localStorage.getItem(KEYPAG)||'[]');
 alunos=alunos.map(a=>({...a,criadoEm:a.criadoEm||new Date().toISOString()}));
+// migração: pago (boolean) -> pago_mes (mês em que pagou; vira o mês sozinho)
+alunos=alunos.map(a=>({...a, pago_mes: a.pago_mes || (a.pago ? mesKey(new Date()) : null)}));
+let editingId=null;
 const USE_CLOUD = !!(window.SUPABASE_URL && window.SUPABASE_KEY && window.supabase);
 let sb=null;
 if(USE_CLOUD){ sb=window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY); }
@@ -13,12 +16,13 @@ const form=$('formAluno'), lista=$('lista'), busca=$('busca'), filtro=$('filtro'
 function saveLocal(){ localStorage.setItem(KEY,JSON.stringify(alunos)); localStorage.setItem(KEYPAG,JSON.stringify(pagamentos)); }
 function brl(v){ return (Number(v)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
 function mesKey(d){ d=new Date(d); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function pagoNoMes(a){ return a.pago_mes === mesKey(new Date()); }
 function mesLabel(mk){ const [a,m]=mk.split('-').map(Number); return new Date(a,m-1,1).toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}); }
 function ultimos6Meses(){ const r=[]; const h=new Date(); h.setDate(1); for(let i=5;i>=0;i--){ const d=new Date(h.getFullYear(),h.getMonth()-i,1); r.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); } return r; }
 function proximoVencimento(dia){ const h=new Date(); return new Date(h.getFullYear(),h.getMonth(),Math.min(dia,28)); }
 function diffDias(data){ const h=new Date(); h.setHours(0,0,0,0); data=new Date(data); data.setHours(0,0,0,0); return Math.round((data-h)/86400000); }
 function statusAluno(a){
-  if(a.pago) return {tipo:'pago',texto:'✅ Pago'};
+  if(pagoNoMes(a)) return {tipo:'pago',texto:'✅ Pago'};
   const d=diffDias(proximoVencimento(a.dia));
   if(d<0) return {tipo:'atrasado',texto:`⚠️ Atrasado ${Math.abs(d)} dia(s)`};
   if(d===0) return {tipo:'hoje',texto:'📅 Vence hoje!'};
@@ -35,7 +39,7 @@ async function carregarNuvem(){
   const {data:a, error:e1}=await sb.from(T_ALUNOS).select('*').order('nome');
   if(e1){ console.error(e1); authErro('Erro banco: '+e1.message+' (rode o supabase.sql novo)'); return; }
   const {data:p}=await sb.from(T_PAG).select('*').order('data',{ascending:false}).limit(2000);
-  if(a) alunos=a.map(x=>({id:x.id,nome:x.nome,dia:x.dia,valor:Number(x.valor),whats:x.whats||'',pago:!!x.pago,criadoEm:x.criado_em}));
+  if(a) alunos=a.map(x=>({id:x.id,nome:x.nome,dia:x.dia,valor:Number(x.valor),whats:x.whats||'',pago_mes:x.pago_mes||(x.pago?mesKey(new Date()):null),criadoEm:x.criado_em}));
   if(p) pagamentos=p.map(x=>({id:x.id,alunoId:x.aluno_id,nome:x.nome,valor:Number(x.valor),data:x.data,mes:x.mes}));
 }
 function mostrarLogin(msg=true){
@@ -74,7 +78,7 @@ form.addEventListener('submit', async e=>{
     await sb.from(T_ALUNOS).insert({nome,dia,valor,whats,pago:false,user_id:session.user.id});
     await carregarNuvem();
   } else {
-    alunos.push({id:Date.now(),nome,dia,valor,whats,pago:false,criadoEm:new Date().toISOString()});
+    alunos.push({id:Date.now(),nome,dia,valor,whats,pago_mes:null,criadoEm:new Date().toISOString()});
     saveLocal();
   }
   form.reset(); render(); renderFat();
@@ -91,12 +95,12 @@ window.marcarPago=async id=>{
   const mk=mesKey(new Date());
   if(USE_CLOUD){
     const {data:{session}} = await sb.auth.getSession();
-    await sb.from(T_ALUNOS).update({pago:true}).eq('id',id);
+    await sb.from(T_ALUNOS).update({pago:true,pago_mes:mk}).eq('id',id);
     const a=alunos.find(x=>String(x.id)===String(id));
     await sb.from(T_PAG).insert({aluno_id:id,nome:a?.nome||'',valor:a?.valor||0,mes:mk,user_id:session.user.id});
     await carregarNuvem();
   } else {
-    const a=alunos.find(x=>x.id===id); if(a) a.pago=true;
+    const a=alunos.find(x=>x.id===id); if(a) a.pago_mes=mk;
     const al=alunos.find(x=>x.id===id);
     pagamentos.push({id:Date.now(),alunoId:id,nome:al.nome,valor:al.valor,data:new Date().toISOString(),mes:mk});
     saveLocal();
@@ -106,11 +110,11 @@ window.marcarPago=async id=>{
 window.desmarcar=async id=>{
   const mk=mesKey(new Date());
   if(USE_CLOUD){
-    await sb.from(T_ALUNOS).update({pago:false}).eq('id',id);
+    await sb.from(T_ALUNOS).update({pago:false,pago_mes:null}).eq('id',id);
     await sb.from(T_PAG).delete().eq('aluno_id',id).eq('mes',mk);
     await carregarNuvem();
   } else {
-    alunos=alunos.map(a=>a.id===id?{...a,pago:false}:a);
+    alunos=alunos.map(a=>a.id===id?{...a,pago_mes:null}:a);
     const idx=[...pagamentos].map((p,i)=>({p,i})).filter(x=>String(x.p.alunoId)===String(id)&&x.p.mes===mk).pop();
     if(idx) pagamentos.splice(idx.i,1);
     saveLocal();
@@ -122,10 +126,26 @@ window.excluir=async id=>{ if(!confirm('Excluir aluno?'))return;
   else { alunos=alunos.filter(a=>a.id!==id); saveLocal(); }
   render(); renderFat();
 };
-window.novoMes=async()=>{ if(!confirm('Iniciar novo mês? Todos voltam para PENDENTE (histórico mantido).'))return;
-  if(USE_CLOUD){ await sb.from(T_ALUNOS).update({pago:false}).neq('id',0); await carregarNuvem(); }
-  else { alunos=alunos.map(a=>({...a,pago:false})); saveLocal(); }
-  render(); renderFat();
+window.editar=id=>{ editingId=id; render(); };
+window.cancelarEdicao=()=>{ editingId=null; render(); };
+window.salvarEdicao=async id=>{
+  const nome=$('edit-nome-'+id).value.trim();
+  const dia=parseInt($('edit-dia-'+id).value);
+  const valor=parseFloat($('edit-valor-'+id).value);
+  const whats=$('edit-whats-'+id).value.replace(/\D/g,'');
+  if(!nome||!(dia>=1&&dia<=31)||!(valor>0)) return alert('Preencha nome, dia 1-31 e valor.');
+  const mk=mesKey(new Date());
+  if(USE_CLOUD){
+    const {error}=await sb.from(T_ALUNOS).update({nome,dia,valor,whats}).eq('id',id);
+    if(error) return alert('Erro ao salvar: '+error.message);
+    await sb.from(T_PAG).update({nome,valor}).eq('aluno_id',id).eq('mes',mk);
+    await carregarNuvem();
+  } else {
+    alunos=alunos.map(a=>a.id===id?{...a,nome,dia,valor,whats}:a);
+    pagamentos=pagamentos.map(p=>String(p.alunoId)===String(id)&&p.mes===mk?{...p,nome,valor}:p);
+    saveLocal();
+  }
+  editingId=null; render(); renderFat();
 };
 busca.addEventListener('input',render); filtro.addEventListener('change',render);
 $('btnLembretes').addEventListener('click',()=>{ trocarAba('alunos'); $('painelLembretes').classList.toggle('hidden'); $('painelLembretes').scrollIntoView({behavior:'smooth'}); });
@@ -143,13 +163,31 @@ function render(){
   F.forEach(a=>{
     const s=statusAluno(a); const div=document.createElement('div'); div.className='aluno';
     const idJs = typeof a.id==='string' ? `'${a.id}'` : a.id;
-    div.innerHTML=`<div class="aluno-info"><b>${a.nome}</b><small>Dia <b>${a.dia}</b> • ${brl(a.valor)} ${a.whats?'• 📱 '+a.whats:''}</small><span class="badge b-${s.tipo}">${s.texto}</span></div>
-    <div class="aluno-actions">${!a.pago?`<button class="btn btn-pago" onclick="marcarPago(${idJs})">✅ Marcar pago</button>`:`<button class="btn btn-dark" onclick="desmarcar(${idJs})">↩️ Voltar p/ pendente</button>`}
-    ${a.whats?`<a class="btn btn-whats" target="_blank" href="https://wa.me/55${a.whats}?text=${msgCobranca(a)}">💬 Cobrar no Whats</a>`:`<span class="btn btn-dark">💬 Sem Whats</span>`}
-    <button class="btn btn-del" onclick="excluir(${idJs})">🗑 Excluir</button></div>`;
+    const pago = pagoNoMes(a);
+    if(String(a.id)===String(editingId)){
+      div.innerHTML=`<div class="aluno-info edit-form">
+        <input id="edit-nome-${a.id}" value="${a.nome.replace(/"/g,'&quot;')}" placeholder="Nome" />
+        <div class="row">
+          <input id="edit-dia-${a.id}" type="number" min="1" max="31" value="${a.dia}" placeholder="Dia" />
+          <input id="edit-valor-${a.id}" type="number" min="1" step="0.01" value="${a.valor}" placeholder="Valor R$" />
+        </div>
+        <input id="edit-whats-${a.id}" value="${a.whats||''}" placeholder="WhatsApp (só números)" />
+        <span class="badge b-${s.tipo}">${s.texto}</span>
+      </div>
+      <div class="aluno-actions">
+        <button class="btn btn-pago" onclick="salvarEdicao(${idJs})">💾 Salvar</button>
+        <button class="btn btn-dark" onclick="cancelarEdicao()">✖ Cancelar</button>
+      </div>`;
+    } else {
+      div.innerHTML=`<div class="aluno-info"><b>${a.nome}</b><small>Dia <b>${a.dia}</b> • ${brl(a.valor)} ${a.whats?'• 📱 '+a.whats:''}</small><span class="badge b-${s.tipo}">${s.texto}</span></div>
+      <div class="aluno-actions">${!pago?`<button class="btn btn-pago" onclick="marcarPago(${idJs})">✅ Marcar pago</button>`:`<button class="btn btn-dark" onclick="desmarcar(${idJs})">↩️ Voltar p/ pendente</button>`}
+      ${a.whats?`<a class="btn btn-whats" target="_blank" href="https://wa.me/55${a.whats}?text=${msgCobranca(a)}">💬 Cobrar no Whats</a>`:`<span class="btn btn-dark">💬 Sem Whats</span>`}
+      <button class="btn btn-edit" onclick="editar(${idJs})">✏️ Editar</button>
+      <button class="btn btn-del" onclick="excluir(${idJs})">🗑 Excluir</button></div>`;
+    }
     lista.appendChild(div);
   });
-  const total=alunos.reduce((s,a)=>s+Number(a.valor),0), pago=alunos.filter(a=>a.pago).reduce((s,a)=>s+Number(a.valor),0);
+  const total=alunos.reduce((s,a)=>s+Number(a.valor),0), pago=alunos.filter(pagoNoMes).reduce((s,a)=>s+Number(a.valor),0);
   $('statTotal').textContent=brl(total); $('statPago').textContent=brl(pago); $('statPendente').textContent=brl(total-pago); $('statAlunos').textContent=alunos.length;
   const urg=alunos.filter(a=>['atrasado','hoje','proximo'].includes(statusAluno(a).tipo));
   $('badgeCount').textContent=urg.length;
@@ -197,10 +235,10 @@ window.carregarExemplo=async()=>{
   if(USE_CLOUD){ alert('No modo nuvem, cadastre 3-4 alunos reais e marque pago — o gráfico monta sozinho. O botão exemplo só funciona no localhost.'); return; }
   alunos=[];pagamentos=[]; const hoje=new Date();
   nomes.forEach((n,i)=>{ const criado=new Date(hoje.getFullYear(),hoje.getMonth()-(i%6),3+i); const valor=[79.9,89.9,99.9,119.9][i%4]; const id=Date.now()+i;
-    alunos.push({id,nome:n,dia:5+(i%20),valor,whats:'',pago:i<7,criadoEm:criado.toISOString()});
+    alunos.push({id,nome:n,dia:5+(i%20),valor,whats:'',pago_mes:null,criadoEm:criado.toISOString()});
     for(let m=5;m>=0;m--){ if(Math.random()<(0.55+(5-m)*0.07)){ const d=new Date(hoje.getFullYear(),hoje.getMonth()-m,8); if(d>=criado) pagamentos.push({id:Date.now()+i*100+m,alunoId:id,nome:n,valor,data:d.toISOString(),mes:mesKey(d)}); } }
   });
-  const mk=mesKey(new Date()); alunos.forEach(a=>{a.pago=pagamentos.some(p=>p.alunoId===a.id&&p.mes===mk);});
+  const mk=mesKey(new Date()); alunos.forEach(a=>{a.pago_mes=pagamentos.some(p=>p.alunoId===a.id&&p.mes===mk)?mk:null;});
   saveLocal(); render(); renderFat(); trocarAba('fat');
 };
 window.limparHistorico=async()=>{ if(!confirm('Apagar TUDO?'))return;
