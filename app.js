@@ -270,18 +270,6 @@ function renderFat(){
   chFat=new Chart($('chartFat'),{type:'bar',data:{labels,datasets:[{label:'Recebido',data:recebidos,backgroundColor:'#22c55e',borderRadius:8},{label:'Previsto',data:previstos,backgroundColor:'#2a2f3b',borderRadius:8}]},options:{scales:{y:{beginAtZero:true}}}});
   chAlu=new Chart($('chartAlunos'),{type:'line',data:{labels,datasets:[{label:'Assinantes',data:nAlunos,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.2)',fill:true,tension:.4}]},options:{scales:{y:{beginAtZero:true,ticks:{stepSize:1}}}}});
 }
-window.carregarExemplo=async()=>{
-  if(!confirm('Gerar exemplo?'))return;
-  const nomes=['Carlos Silva','Ana Souza','Pedro Santos','Mariana Lima','João Oliveira','Fernanda Costa','Lucas Pereira','Juliana Alves','Rafael Rocha','Beatriz Martins','Thiago Nunes','Camila Ribeiro'];
-  if(USE_CLOUD){ alert('No modo nuvem, cadastre 3-4 alunos reais e marque pago — o gráfico monta sozinho. O botão exemplo só funciona no localhost.'); return; }
-  alunos=[];pagamentos=[]; const hoje=new Date();
-  nomes.forEach((n,i)=>{ const criado=new Date(hoje.getFullYear(),hoje.getMonth()-(i%6),3+i); const valor=[79.9,89.9,99.9,119.9][i%4]; const id=Date.now()+i;
-    alunos.push({id,nome:n,dia:5+(i%20),valor,whats:'',pago_mes:null,criadoEm:criado.toISOString()});
-    for(let m=5;m>=0;m--){ if(Math.random()<(0.55+(5-m)*0.07)){ const d=new Date(hoje.getFullYear(),hoje.getMonth()-m,8); if(d>=criado) pagamentos.push({id:Date.now()+i*100+m,alunoId:id,nome:n,valor,data:d.toISOString(),mes:mesKey(d)}); } }
-  });
-  const mk=mesKey(new Date()); alunos.forEach(a=>{a.pago_mes=pagamentos.some(p=>p.alunoId===a.id&&p.mes===mk)?mk:null;});
-  saveLocal(); render(); renderFat(); trocarAba('fat');
-};
 window.limparHistorico=async()=>{ if(!confirm('Apagar TUDO?'))return;
   if(USE_CLOUD){ await sb.from(T_PAG).delete().neq('id',0); await sb.from(T_ALUNOS).delete().neq('id',0); await carregarNuvem(); }
   else { alunos=[];pagamentos=[]; saveLocal(); }
