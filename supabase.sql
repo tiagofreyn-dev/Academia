@@ -35,7 +35,8 @@ create index if not exists idx_academia_pag_user_mes on academia_pagamentos(user
 create index if not exists idx_academia_pag_aluno_mes on academia_pagamentos(aluno_id, mes);
 
 drop policy if exists "dono ve seus academia_alunos" on academia_alunos;
-drop policy if exists "dono ve seus academia_pagamentos" on academia_pagamentos;create policy "dono ve seus academia_alunos" on academia_alunos
+drop policy if exists "dono ve seus academia_pagamentos" on academia_pagamentos;
+create policy "dono ve seus academia_alunos" on academia_alunos
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "dono ve seus academia_pagamentos" on academia_pagamentos
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
