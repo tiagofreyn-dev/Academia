@@ -29,7 +29,15 @@ function statusAluno(a){
   if(d<=2) return {tipo:'proximo',texto:`⏳ Vence em ${d} dia(s)`};
   return {tipo:'ok',texto:`Vence dia ${a.dia}`};
 }
-function msgCobranca(a){ return encodeURIComponent(`Olá ${a.nome}! Aqui é da academia 💪 Sua mensalidade de ${brl(a.valor)} vence dia ${a.dia}. Pode confirmar o pagamento? Obrigado!`); }
+const KEYMSG='academia_msg_tpl_v1';
+const MSGPADRAO='Olá {nome}! Aqui é da academia 💪 Sua mensalidade de {valor} vence dia {dia}. Pode confirmar o pagamento? Obrigado!';
+function msgTemplate(){ return localStorage.getItem(KEYMSG)||MSGPADRAO; }
+window.salvarModeloMsg=()=>{ const t=$('msgTpl'); if(t) localStorage.setItem(KEYMSG,t.value); };
+window.restaurarModeloMsg=()=>{ localStorage.removeItem(KEYMSG); const t=$('msgTpl'); if(t) t.value=MSGPADRAO; };
+function msgCobranca(a){
+  const t=msgTemplate().split('{nome}').join(a.nome).split('{valor}').join(brl(a.valor)).split('{dia}').join(a.dia);
+  return encodeURIComponent(t);
+}
 
 async function carregarNuvem(){
   if(!USE_CLOUD) return;
@@ -188,9 +196,10 @@ function render(){
         <button class="btn btn-dark" onclick="cancelarEdicao()">✖ Cancelar</button>
       </div>`;
     } else {
-      div.innerHTML=`<div class="aluno-info"><b>${a.nome}</b><small>Dia <b>${a.dia}</b> • ${brl(a.valor)} ${a.whats?'• 📱 '+a.whats:''}</small><span class="badge b-${s.tipo}">${s.texto}</span></div>
-      <div class="aluno-actions">${!pago?`<button class="btn btn-pago" onclick="marcarPago(${idJs})">✅ Marcar pago</button>`:`<button class="btn btn-dark" onclick="desmarcar(${idJs})">↩️ Voltar p/ pendente</button>`}
-      ${a.whats?`<a class="btn btn-whats" target="_blank" href="https://wa.me/55${a.whats}?text=${msgCobranca(a)}">💬 Cobrar no Whats</a>`:`<span class="btn btn-dark">💬 Sem Whats</span>`}
+      const inicial=(a.nome||'?').trim().charAt(0).toUpperCase();
+      div.innerHTML=`<div class="aluno-top"><div class="avatar">${inicial}</div><div class="aluno-ident"><b class="aluno-nome">${a.nome}</b><small class="aluno-detalhes">Dia <b>${a.dia}</b> • ${brl(a.valor)}${a.whats?' • 📱 '+a.whats:''}</small><span class="badge b-${s.tipo}">${s.texto}</span></div></div>
+      <div class="aluno-actions">${!pago?`<button class="btn btn-pago btn-wide" onclick="marcarPago(${idJs})">✅ Marcar pago</button>`:`<button class="btn btn-dark btn-wide" onclick="desmarcar(${idJs})">↩️ Voltar p/ pendente</button>`}
+      ${a.whats?`<a class="btn btn-whats btn-wide" target="_blank" href="https://wa.me/55${a.whats}?text=${msgCobranca(a)}">💬 Cobrar no Whats</a>`:`<span class="btn btn-dark btn-wide">💬 Sem Whats</span>`}
       <button class="btn btn-edit" onclick="editar(${idJs})">✏️ Editar</button>
       <button class="btn btn-del" onclick="excluir(${idJs})">🗑 Excluir</button></div>`;
     }
@@ -263,5 +272,6 @@ window.limparHistorico=async()=>{ if(!confirm('Apagar TUDO?'))return;
   } else {
     mostrarApp();
   }
+  if($('msgTpl')) $('msgTpl').value=msgTemplate();
   render(); renderFat();
 })();

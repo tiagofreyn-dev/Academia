@@ -19,19 +19,27 @@ html,body{max-width:100%;overflow-x:hidden}
 .grid-fat{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 h2{margin:0 0 8px;font-size:18px}
 form label{display:block;margin-bottom:12px;font-size:14px;color:#cbd5e1}
-input,select{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff}
+input,select,textarea{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff;font-family:inherit;font-size:14px}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn-primary{width:100%;background:#22c55e;border:0;padding:13px;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer;color:#06240f}
 .check{display:flex!important;flex-direction:row;align-items:center;gap:8px;background:#0f1115;border:1px solid #333;border-radius:10px;padding:11px;cursor:pointer}
 .check input{width:auto!important;margin-top:0;accent-color:#22c55e}
 .hint{font-size:12px;color:#9ca3af}
 .toolbar{display:flex;gap:8px;margin-bottom:12px}.toolbar input{flex:2}.toolbar select{flex:1}
-.aluno{display:flex;justify-content:space-between;align-items:center;background:#0f1115;border:1px solid #2a2f3b;border-radius:12px;padding:12px;margin-bottom:10px}
-.aluno-info b{font-size:16px}.aluno-info small{display:block;color:#9ca3af;margin-top:3px}
+.aluno{background:#0f1115;border:1px solid #2a2f3b;border-radius:12px;padding:14px;margin-bottom:12px}
+.aluno-top{display:flex;gap:12px;align-items:flex-start}
+.avatar{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:#22c55e;color:#06240f;font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center}
+.aluno-ident{min-width:0;flex:1}
+.aluno-nome{font-size:19px;font-weight:800;display:block;overflow:hidden;text-overflow:ellipsis}
+.aluno-detalhes{display:block;color:#9ca3af;margin-top:3px;font-size:13px}
 .badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px}
 .b-hoje{background:#f59e0b;color:#111}.b-atrasado{background:#ef4444;color:#fff}.b-proximo{background:#3b82f6;color:#fff}.b-pago{background:#22c55e;color:#06240f}.b-ok{background:#2a2f3b;color:#ccc}
-.aluno-actions{display:flex;flex-direction:column;gap:6px;min-width:140px}
-.btn{padding:8px 10px;border-radius:9px;border:0;cursor:pointer;font-weight:700;font-size:13px;text-decoration:none;text-align:center}
+.aluno-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn{padding:10px;border-radius:10px;border:0;cursor:pointer;font-weight:700;font-size:14px;text-decoration:none;text-align:center}
+.btn-wide{grid-column:1/-1}
+.msg-config{margin-bottom:12px;background:#0f1115;border:1px solid #2a2f3b;border-radius:12px;padding:12px 14px}
+.msg-config summary{cursor:pointer;font-weight:700;font-size:14px;color:#cbd5e1}
+.msg-config textarea{min-height:74px;resize:vertical}
 .btn-pago{background:#22c55e;color:#06240f}.btn-whats{background:#25d366;color:#06240f}.btn-del{background:transparent;color:#ef4444;border:1px solid #442}.btn-dark{background:#262b36;color:#fff;border:1px solid #333}.btn-edit{background:#1d2b45;color:#93c5fd;border:1px solid #2d4470}
 .edit-form{display:flex;flex-direction:column;gap:8px;flex:1}.edit-form input{margin-top:0}
 .lembrete{background:#0f1115;border-left:4px solid #f59e0b;padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -54,9 +62,8 @@ input,select{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1p
 .stats,.fat-stats{gap:8px}
 .stat strong{font-size:18px}
 .card{padding:14px}
-.toolbar{flex-direction:column}
-.aluno{flex-direction:column;align-items:stretch;gap:10px}
-.aluno-actions{min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .toolbar{flex-direction:column}
+  .aluno{padding:12px}
 .lembrete{flex-direction:column;align-items:stretch}
 .login-wrap{padding:16px;min-height:80vh}
 }

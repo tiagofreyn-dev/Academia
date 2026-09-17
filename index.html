@@ -85,8 +85,13 @@
             <option value="pendentes">Pendentes</option>
           </select>
         </div>
-        <div id="lista"></div>
-      </div>
+        <details class="msg-config">
+          <summary>💬 Personalizar mensagem do WhatsApp</summary>
+          <textarea id="msgTpl" rows="3" oninput="salvarModeloMsg()"></textarea>
+          <p class="hint">Use <b>{nome}</b>, <b>{valor}</b> e <b>{dia}</b> — eles viram os dados do aluno na hora de enviar.</p>
+          <button class="btn btn-dark" onclick="restaurarModeloMsg()">↩️ Voltar ao texto padrão</button>
+        </details>
+        <div id="lista"></div>      </div>
     </section>
 
     <section id="painelLembretes" class="card hidden">
