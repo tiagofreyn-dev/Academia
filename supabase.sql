@@ -34,6 +34,17 @@ create index if not exists idx_academia_alunos_user on academia_alunos(user_id);
 create index if not exists idx_academia_pag_user_mes on academia_pagamentos(user_id, mes);
 create index if not exists idx_academia_pag_aluno_mes on academia_pagamentos(aluno_id, mes);
 
+-- Config por dono (ex: modelo da mensagem do WhatsApp; acompanha o login)
+create table if not exists academia_config (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  msg_tpl text default null,
+  atualizado_em timestamptz default now()
+);
+alter table academia_config enable row level security;
+drop policy if exists "dono ve sua academia_config" on academia_config;
+create policy "dono ve sua academia_config" on academia_config
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
 drop policy if exists "dono ve seus academia_alunos" on academia_alunos;
 drop policy if exists "dono ve seus academia_pagamentos" on academia_pagamentos;
 create policy "dono ve seus academia_alunos" on academia_alunos

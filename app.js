@@ -1,7 +1,7 @@
 // Academia - localhost (localStorage) OU nuvem (Supabase) se config.js preenchido
 // Tabelas isoladas: academia_alunos / academia_pagamentos (convivem com outros projetos no mesmo Supabase)
 const KEY='academia_alunos_v1', KEYPAG='academia_pagamentos_v1';
-const T_ALUNOS='academia_alunos', T_PAG='academia_pagamentos';
+const T_ALUNOS='academia_alunos', T_PAG='academia_pagamentos', T_CFG='academia_config';
 let alunos=JSON.parse(localStorage.getItem(KEY)||'[]');
 let pagamentos=JSON.parse(localStorage.getItem(KEYPAG)||'[]');
 alunos=alunos.map(a=>({...a,criadoEm:a.criadoEm||new Date().toISOString()}));
@@ -31,9 +31,28 @@ function statusAluno(a){
 }
 const KEYMSG='academia_msg_tpl_v1';
 const MSGPADRAO='Olá {nome}! Aqui é da academia 💪 Sua mensalidade de {valor} vence dia {dia}. Pode confirmar o pagamento? Obrigado!';
-function msgTemplate(){ return localStorage.getItem(KEYMSG)||MSGPADRAO; }
-window.salvarModeloMsg=()=>{ const t=$('msgTpl'); if(t) localStorage.setItem(KEYMSG,t.value); };
-window.restaurarModeloMsg=()=>{ localStorage.removeItem(KEYMSG); const t=$('msgTpl'); if(t) t.value=MSGPADRAO; };
+let msgTplMem=null;
+function msgTemplate(){ return msgTplMem || localStorage.getItem(KEYMSG) || MSGPADRAO; }
+function aplicarModeloMsg(t){ msgTplMem=t||MSGPADRAO; try{localStorage.setItem(KEYMSG,msgTplMem);}catch(e){} const el=$('msgTpl'); if(el) el.value=msgTplMem; }
+let msgSaveTimer=null;
+window.salvarModeloMsg=()=>{
+  const t=$('msgTpl'); if(!t) return;
+  msgTplMem=t.value; try{localStorage.setItem(KEYMSG,t.value);}catch(e){}
+  if(!(USE_CLOUD&&sb)) return;
+  clearTimeout(msgSaveTimer);
+  msgSaveTimer=setTimeout(async()=>{
+    try{ const {data:{session}}=await sb.auth.getSession(); if(!session) return;
+      await sb.from(T_CFG).upsert({user_id:session.user.id,msg_tpl:t.value,atualizado_em:new Date().toISOString()},{onConflict:'user_id'});
+    }catch(e){ console.error(e); }
+  },800);
+};
+window.restaurarModeloMsg=async()=>{
+  aplicarModeloMsg(MSGPADRAO); try{localStorage.removeItem(KEYMSG);}catch(e){}
+  if(!(USE_CLOUD&&sb)) return;
+  try{ const {data:{session}}=await sb.auth.getSession(); if(!session) return;
+    await sb.from(T_CFG).upsert({user_id:session.user.id,msg_tpl:null,atualizado_em:new Date().toISOString()},{onConflict:'user_id'});
+  }catch(e){ console.error(e); }
+};
 function msgCobranca(a){
   const t=msgTemplate().split('{nome}').join(a.nome).split('{valor}').join(brl(a.valor)).split('{dia}').join(a.dia);
   return encodeURIComponent(t);
@@ -49,6 +68,10 @@ async function carregarNuvem(){
   const {data:p}=await sb.from(T_PAG).select('*').gte('mes', ultimos6Meses()[0]).order('data',{ascending:false}).limit(2000);
   if(a) alunos=a.map(x=>({id:x.id,nome:x.nome,dia:x.dia,valor:Number(x.valor),whats:x.whats||'',pago_mes:x.pago_mes||(x.pago?mesKey(new Date()):null),criadoEm:x.criado_em}));
   if(p) pagamentos=p.map(x=>({id:x.id,alunoId:x.aluno_id,nome:x.nome,valor:Number(x.valor),data:x.data,mes:x.mes}));
+  try{
+    const {data:c}=await sb.from(T_CFG).select('msg_tpl').eq('user_id',session.user.id).maybeSingle();
+    if(c) aplicarModeloMsg(c.msg_tpl||MSGPADRAO);
+  }catch(e){ console.error(e); }
 }
 function mostrarLogin(msg=true){
   $('tela-login').classList.remove('hidden'); $('app').classList.add('hidden');
@@ -77,7 +100,7 @@ window.criarConta=async()=>{
   authErro('Conta criada! Se pedir, confirme no e-mail e clique Entrar.');
   await carregarNuvem(); render(); renderFat();
 };
-window.sair=async()=>{ await sb.auth.signOut(); alunos=[]; pagamentos=[]; mostrarLogin(); };
+window.sair=async()=>{ await sb.auth.signOut(); alunos=[]; pagamentos=[]; msgTplMem=null; if($('msgTpl')) $('msgTpl').value=msgTemplate(); mostrarLogin(); };
 
 form.addEventListener('submit', async e=>{
   e.preventDefault();
