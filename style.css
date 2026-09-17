@@ -22,6 +22,8 @@ form label{display:block;margin-bottom:12px;font-size:14px;color:#cbd5e1}
 input,select{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1px solid #333;background:#0f1115;color:#fff}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btn-primary{width:100%;background:#22c55e;border:0;padding:13px;border-radius:10px;font-weight:800;font-size:16px;cursor:pointer;color:#06240f}
+.check{display:flex!important;flex-direction:row;align-items:center;gap:8px;background:#0f1115;border:1px solid #333;border-radius:10px;padding:11px;cursor:pointer}
+.check input{width:auto!important;margin-top:0;accent-color:#22c55e}
 .hint{font-size:12px;color:#9ca3af}
 .toolbar{display:flex;gap:8px;margin-bottom:12px}.toolbar input{flex:2}.toolbar select{flex:1}
 .aluno{display:flex;justify-content:space-between;align-items:center;background:#0f1115;border:1px solid #2a2f3b;border-radius:12px;padding:12px;margin-bottom:10px}

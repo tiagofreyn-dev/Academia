@@ -74,13 +74,19 @@ window.sair=async()=>{ await sb.auth.signOut(); alunos=[]; pagamentos=[]; mostra
 form.addEventListener('submit', async e=>{
   e.preventDefault();
   const nome=$('nome').value.trim(), dia=parseInt($('dia').value), valor=parseFloat($('valor').value), whats=$('whats').value.replace(/\D/g,'');
+  const jaPago=$('jaPago') && $('jaPago').checked;
+  const mk=mesKey(new Date());
   if(!nome||!(dia>=1&&dia<=31)||!(valor>0)) return alert('Preencha nome, dia 1-31 e valor.');
   if(USE_CLOUD){
     const {data:{session}} = await sb.auth.getSession();
-    await sb.from(T_ALUNOS).insert({nome,dia,valor,whats,pago:false,user_id:session.user.id});
+    const {data:ins, error}=await sb.from(T_ALUNOS).insert({nome,dia,valor,whats,pago:!!jaPago,pago_mes:jaPago?mk:null,user_id:session.user.id}).select();
+    if(error) return alert('Erro ao salvar: '+error.message);
+    if(jaPago && ins && ins[0]) await sb.from(T_PAG).insert({aluno_id:ins[0].id,nome,valor,mes:mk,user_id:session.user.id});
     await carregarNuvem();
   } else {
-    alunos.push({id:Date.now(),nome,dia,valor,whats,pago_mes:null,criadoEm:new Date().toISOString()});
+    const id=Date.now();
+    alunos.push({id,nome,dia,valor,whats,pago_mes:jaPago?mk:null,criadoEm:new Date().toISOString()});
+    if(jaPago) pagamentos.push({id:Date.now()+1,alunoId:id,nome,valor,data:new Date().toISOString(),mes:mk});
     saveLocal();
   }
   form.reset(); render(); renderFat();
