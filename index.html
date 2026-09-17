@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Academia • Controle de Mensalidades</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="logo">💪 <span>Minha Academia</span></div>
+  <nav class="tabs">
+    <button id="tabAlunos" class="tab active" onclick="trocarAba('alunos')">📋 Alunos</button>
+    <button id="tabFat" class="tab" onclick="trocarAba('fat')">💰 Faturamento</button>
+  </nav>
+  <div class="top-actions">
+    <span id="userEmail" class="user-email hidden"></span>
+    <button id="btnSair" class="btn btn-dark hidden" onclick="sair()">Sair</button>
+    <button id="btnLembretes" class="btn-alert">🔔 <span id="badgeCount">0</span></button>
+  </div>
+</header>
+
+<!-- TELA DE LOGIN -->
+<div id="tela-login" class="login-wrap hidden">
+  <div class="card login-card">
+    <div style="font-size:44px;text-align:center">💪</div>
+    <h2 style="text-align:center">Entrar na sua academia</h2>
+    <p class="hint" style="text-align:center">Cada dono tem seu login e vê só os seus alunos.<br><span id="loginModoInfo">Sem banco configurado: login desativado no localhost.</span></p>
+    <label>E-mail (gmail)
+      <input type="email" id="authEmail" placeholder="voce@gmail.com" autocomplete="email" />
+    </label>
+    <label>Senha
+      <input type="password" id="authPass" placeholder="mínimo 6 letras" autocomplete="current-password" />
+    </label>
+    <p id="authErro" class="auth-erro hidden"></p>
+    <button class="btn-primary" onclick="entrar()">Entrar</button>
+    <button class="btn btn-dark" style="width:100%;margin-top:8px" onclick="criarConta()">Criar conta grátis</button>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+
+<div id="alertBanner" class="alert-banner hidden"></div>
+
+<main class="container">
+
+  <!-- ABA ALUNOS -->
+  <div id="aba-alunos">
+    <section class="stats">
+      <div class="card stat"><small>Total a receber (mês)</small><strong id="statTotal">R$ 0,00</strong></div>
+      <div class="card stat green"><small>Recebido</small><strong id="statPago">R$ 0,00</strong></div>
+      <div class="card stat red"><small>Pendente / Atrasado</small><strong id="statPendente">R$ 0,00</strong></div>
+      <div class="card stat yellow"><small>🙋 Alunos assinantes</small><strong id="statAlunos">0</strong></div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>➕ Novo aluno</h2>
+        <form id="formAluno">
+          <label>Nome do aluno*
+            <input type="text" id="nome" placeholder="Ex: Carlos Silva" required />
+          </label>
+          <div class="row">
+            <label>Dia pagto (1-31)*<input type="number" id="dia" min="1" max="31" placeholder="10" required /></label>
+            <label>Valor mensal (R$)*<input type="number" id="valor" min="1" step="0.01" placeholder="89.90" required /></label>
+          </div>
+          <label>WhatsApp (só números)<input type="text" id="whats" placeholder="11999998888" /></label>
+          <button type="submit" class="btn-primary">Salvar aluno</button>
+        </form>
+        <button class="btn btn-dark" style="width:100%;margin-top:8px" onclick="novoMes()">🔄 Iniciar novo mês (zerar pagos)</button>
+        <p class="hint">Ao marcar pago, o valor entra no Faturamento. No virar do mês, clique em "Iniciar novo mês".</p>
+      </div>
+
+      <div class="card">
+        <h2>📋 Alunos</h2>
+        <div class="toolbar">
+          <input type="search" id="busca" placeholder="Buscar aluno..." />
+          <select id="filtro">
+            <option value="todos">Todos</option>
+            <option value="hoje">Vencem hoje</option>
+            <option value="proximos">Vencem em até 2 dias</option>
+            <option value="atrasados">Atrasados</option>
+            <option value="pagos">Pagos</option>
+            <option value="pendentes">Pendentes</option>
+          </select>
+        </div>
+        <div id="lista"></div>
+      </div>
+    </section>
+
+    <section id="painelLembretes" class="card hidden">
+      <h2>🔔 Quem precisa pagar</h2>
+      <div id="listaLembretes"></div>
+    </section>
+  </div>
+
+  <!-- ABA FATURAMENTO -->
+  <div id="aba-fat" class="hidden">
+    <section class="stats fat-stats">
+      <div class="card stat green"><small>💰 Recebido este mês</small><strong id="fatMesAtual">R$ 0</strong><span id="fatVar" class="var"></span></div>
+      <div class="card stat"><small>📅 Previsto no mês</small><strong id="fatPrevisto">R$ 0</strong></div>
+      <div class="card stat"><small>📊 Mês anterior</small><strong id="fatMesAnt">R$ 0</strong></div>
+      <div class="card stat yellow"><small>🙋 Alunos assinantes</small><strong id="fatAlunos">0</strong><span id="fatNovos" class="var"></span></div>
+      <div class="card stat"><small>🎟️ Ticket médio</small><strong id="fatTicket">R$ 0</strong></div>
+      <div class="card stat red"><small>⚠️ Inadimplência</small><strong id="fatInad">0%</strong></div>
+    </section>
+
+    <div class="grid-fat">
+      <div class="card">
+        <h2>📈 Faturamento mensal (últimos 6 meses)</h2>
+        <p class="hint">Verde = recebido • Cinza = previsto. Dá pra ver se está subindo ou descendo.</p>
+        <canvas id="chartFat" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h2>👥 Evolução de alunos assinantes</h2>
+        <p class="hint">Total de assinantes ativos mês a mês.</p>
+        <canvas id="chartAlunos" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🗓️ Detalhamento por mês</h2>
+      <div style="overflow-x:auto">
+      <table class="tabela">
+        <thead><tr><th>Mês</th><th>Assinantes</th><th>Previsto</th><th>Recebido</th><th>% recebido</th><th>Tendência</th></tr></thead>
+        <tbody id="tabelaFat"></tbody>
+      </table>
+      </div>
+      <div class="fat-actions">
+        <button class="btn btn-pago" onclick="carregarExemplo()">✨ Carregar 6 meses de exemplo</button>
+        <button class="btn btn-del" onclick="limparHistorico()">🗑 Limpar histórico</button>
+      </div>
+      <p class="hint">O exemplo serve pra você ver o gráfico subindo/descendo. Depois é só limpar e usar de verdade.</p>
+    </div>
+  </div>
+
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
