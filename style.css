@@ -1,5 +1,6 @@
 *{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:#0f1115;color:#eee}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#171a21;border-bottom:1px solid #262b36;position:sticky;top:0;z-index:10;gap:10px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:#171a21;border-bottom:1px solid #262b36;position:sticky;top:0;z-index:10;gap:10px;flex-wrap:wrap}
+html,body{max-width:100%;overflow-x:hidden}
 .logo{font-size:19px;font-weight:800;white-space:nowrap}.logo span{color:#22c55e}
 .tabs{display:flex;gap:8px}.tab{background:#0f1115;color:#ccc;border:1px solid #333;padding:9px 16px;border-radius:10px;font-weight:700;cursor:pointer}
 .tab.active{background:#22c55e;color:#06240f;border-color:#22c55e}
@@ -40,3 +41,20 @@ input,select{width:100%;margin-top:6px;padding:11px;border-radius:10px;border:1p
 .auth-erro{background:#3a1414;color:#fca5a5;padding:10px;border-radius:10px;font-size:13px}
 .user-email{font-size:13px;color:#9ca3af;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:900px){.grid,.grid-fat{grid-template-columns:1fr}.stats,.fat-stats{grid-template-columns:1fr 1fr}.tabs{flex:1}.tab{flex:1;font-size:13px;padding:9px 6px}}
+@media(max-width:640px){
+.topbar{padding:10px 12px;gap:8px}
+.logo{font-size:16px;flex:1;min-width:0}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tabs{order:3;flex-basis:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tab{font-size:14px;padding:10px 6px;text-align:center}
+.user-email{display:none}
+.container{padding:12px}
+.stats,.fat-stats{gap:8px}
+.stat strong{font-size:18px}
+.card{padding:14px}
+.toolbar{flex-direction:column}
+.aluno{flex-direction:column;align-items:stretch;gap:10px}
+.aluno-actions{min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lembrete{flex-direction:column;align-items:stretch}
+.login-wrap{padding:16px;min-height:80vh}
+}

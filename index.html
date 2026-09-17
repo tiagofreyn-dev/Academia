@@ -8,13 +8,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<header class="topbar">
+<header class="topbar" id="topbar">
   <div class="logo">💪 <span>Minha Academia</span></div>
-  <nav class="tabs">
+  <nav class="tabs hidden" id="navTabs">
     <button id="tabAlunos" class="tab active" onclick="trocarAba('alunos')">📋 Alunos</button>
     <button id="tabFat" class="tab" onclick="trocarAba('fat')">💰 Faturamento</button>
   </nav>
-  <div class="top-actions">
+  <div class="top-actions hidden" id="topActions">
     <span id="userEmail" class="user-email hidden"></span>
     <button id="btnSair" class="btn btn-dark hidden" onclick="sair()">Sair</button>
     <button id="btnLembretes" class="btn-alert">🔔 <span id="badgeCount">0</span></button>

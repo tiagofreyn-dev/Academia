@@ -38,17 +38,19 @@ async function carregarNuvem(){
   mostrarApp(session.user.email);
   const {data:a, error:e1}=await sb.from(T_ALUNOS).select('*').order('nome');
   if(e1){ console.error(e1); authErro('Erro banco: '+e1.message+' (rode o supabase.sql novo)'); return; }
-  const {data:p}=await sb.from(T_PAG).select('*').order('data',{ascending:false}).limit(2000);
+  const {data:p}=await sb.from(T_PAG).select('*').gte('mes', ultimos6Meses()[0]).order('data',{ascending:false}).limit(2000);
   if(a) alunos=a.map(x=>({id:x.id,nome:x.nome,dia:x.dia,valor:Number(x.valor),whats:x.whats||'',pago_mes:x.pago_mes||(x.pago?mesKey(new Date()):null),criadoEm:x.criado_em}));
   if(p) pagamentos=p.map(x=>({id:x.id,alunoId:x.aluno_id,nome:x.nome,valor:Number(x.valor),data:x.data,mes:x.mes}));
 }
 function mostrarLogin(msg=true){
   $('tela-login').classList.remove('hidden'); $('app').classList.add('hidden');
+  $('navTabs').classList.add('hidden'); $('topActions').classList.add('hidden');
   $('userEmail').classList.add('hidden'); $('btnSair').classList.add('hidden');
   if(msg) $('loginModoInfo').textContent='Faça login para ver seus alunos na nuvem.';
 }
 function mostrarApp(email){
   $('tela-login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('navTabs').classList.remove('hidden'); $('topActions').classList.remove('hidden');
   if(email){ $('userEmail').textContent=email; $('userEmail').classList.remove('hidden'); $('btnSair').classList.remove('hidden'); }
 }
 function authErro(t){ const e=$('authErro'); e.textContent=t; e.classList.remove('hidden'); }
@@ -147,7 +149,8 @@ window.salvarEdicao=async id=>{
   }
   editingId=null; render(); renderFat();
 };
-busca.addEventListener('input',render); filtro.addEventListener('change',render);
+let buscaTimer=null;
+busca.addEventListener('input',()=>{ clearTimeout(buscaTimer); buscaTimer=setTimeout(render,200); }); filtro.addEventListener('change',render);
 $('btnLembretes').addEventListener('click',()=>{ trocarAba('alunos'); $('painelLembretes').classList.toggle('hidden'); $('painelLembretes').scrollIntoView({behavior:'smooth'}); });
 
 function render(){
@@ -252,7 +255,7 @@ window.limparHistorico=async()=>{ if(!confirm('Apagar TUDO?'))return;
     sb.auth.onAuthStateChange(async (_ev,session)=>{ if(session){ await carregarNuvem(); render(); renderFat(); } });
     await carregarNuvem();
   } else {
-    $('app').classList.remove('hidden');
+    mostrarApp();
   }
   render(); renderFat();
 })();
