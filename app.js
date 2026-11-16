@@ -85,19 +85,32 @@ function mostrarApp(email){
   if(email){ $('userEmail').textContent=email; $('userEmail').classList.remove('hidden'); $('btnSair').classList.remove('hidden'); }
 }
 function authErro(t){ const e=$('authErro'); e.textContent=t; e.classList.remove('hidden'); }
+function msgErroAuth(err){
+  const m=(err&&err.message?err.message:'').toLowerCase();
+  if(m.includes('invalid login credentials')) return 'E-mail ou senha incorretos. Se ainda não tem conta, clique em "Criar conta grátis".';
+  if(m.includes('email not confirmed')) return 'Confirme seu e-mail antes de entrar (veja a caixa de entrada/spam).';
+  if(m.includes('user already registered')||m.includes('already registered')) return 'Este e-mail já tem conta. Clique em "Entrar".';
+  return (err&&err.message)?err.message:'Erro desconhecido.';
+}
 window.entrar=async()=>{
-  const email=$('authEmail').value.trim(), pass=$('authPass').value;
+  const email=$('authEmail').value.trim().toLowerCase(), pass=$('authPass').value;
   if(!email||pass.length<6) return authErro('Digite e-mail e senha de 6+ letras.');
-  const {error}=await sb.auth.signInWithPassword({email,password:pass});
-  if(error) return authErro('Não entrou: '+error.message);
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+  if(error) return authErro('Não entrou: '+msgErroAuth(error));
+  if(!data||!data.session) return authErro('Não foi possível iniciar a sessão. Tente novamente.');
   await carregarNuvem(); render(); renderFat();
 };
 window.criarConta=async()=>{
-  const email=$('authEmail').value.trim(), pass=$('authPass').value;
+  const email=$('authEmail').value.trim().toLowerCase(), pass=$('authPass').value;
   if(!email||pass.length<6) return authErro('Digite e-mail e senha de 6+ letras para criar.');
-  const {error}=await sb.auth.signUp({email,password:pass});
-  if(error) return authErro('Não criou: '+error.message);
-  authErro('Conta criada! Se pedir, confirme no e-mail e clique Entrar.');
+  const {data,error}=await sb.auth.signUp({email,password:pass});
+  if(error) return authErro('Não criou: '+msgErroAuth(error));
+  const jaExistia = !!(data&&data.user&&Array.isArray(data.user.identities)&&data.user.identities.length===0);
+  if(jaExistia) return authErro('Este e-mail já tem conta. Clique em "Entrar".');
+  if(!(data&&data.session)){
+    authErro('Conta criada! Confirme no e-mail e depois clique em "Entrar".');
+    return;
+  }
   await carregarNuvem(); render(); renderFat();
 };
 window.sair=async()=>{ await sb.auth.signOut(); alunos=[]; pagamentos=[]; msgTplMem=null; if($('msgTpl')) $('msgTpl').value=msgTemplate(); mostrarLogin(); };
